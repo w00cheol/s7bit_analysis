@@ -2565,6 +2565,7 @@ static void printResults(u_int64_t processing_time_usec, u_int64_t setup_time_us
   // }
 
   // if((!quiet_mode)) {
+      printf("\n\nEND nDPI\n\n");
   //   printf("\n\nProtocol statistics:\n");
 
   //   for(i=0; i < NUM_BREEDS; i++) {
@@ -2579,7 +2580,7 @@ static void printResults(u_int64_t processing_time_usec, u_int64_t setup_time_us
   // printf("\n\nTotal Flow Traffic: %llu (diff: %llu)\n", total_flow_bytes, cumulative_stats.total_ip_bytes-total_flow_bytes);
 
   printFlowsStats();
-
+//dd
   if(verbose == 3) {
     HASH_SORT(srcStats, port_stats_sort);
     HASH_SORT(dstStats, port_stats_sort);
@@ -2814,20 +2815,25 @@ static void ndpi_process_packet(u_char *args,
     s7param_len=packet_checked[s7_offset+7];
     s7data_offset=s7_offset+s7header_len+s7param_len;
 
+    
     if(packet_checked[s7_offset+s7header_len+4]==0x12){
-      printf("--- Detection s7 Response (packet num : %d) ---\n",pkcount);
+      //printf("--- Detection s7 Response (packet num : %d) ---\n",pkcount);
+      if(((packet_checked[s7_offset+s7header_len+5]&0x0f)==0x04)&&(packet_checked[s7_offset+s7header_len+6]==0x01)){
+        printf("Detection s7 Response (CPU function -> Read SZL, packet num :%d)\n",pkcount);
+        s7id=(packet_checked[s7data_offset+4]<<8);
+        s7id+=packet_checked[s7data_offset+5];
+        s7index=(packet_checked[s7data_offset+6]<<8);
+        s7index+=packet_checked[s7data_offset+7];
 
-      s7id=(packet_checked[s7data_offset+4]<<8);
-      s7id+=packet_checked[s7data_offset+5];
-      s7index=(packet_checked[s7data_offset+6]<<8);
-      s7index=packet_checked[s7data_offset+7];
+        s7param_offset=s7_offset+s7header_len+s7param_len;
 
-      s7param_offset=s7_offset+s7header_len+s7param_len;
+        s7data_len=header->caplen-s7param_offset;
 
-      s7data_len=header->caplen-s7param_offset;
-//
-      printf("ID = %x, Index = %x\n\n",s7id,s7index);
-      bit_analysis(packet_checked+s7param_offset,s7data_len,s7id,s7index);
+        printf("ID = %x, Index = %x\n",s7id,s7index);
+        bit_analysis(packet_checked+s7param_offset,s7data_len,s7id,s7index);
+      }else{
+        //other Response function
+      }
     }
   }
 
@@ -2837,7 +2843,7 @@ static void ndpi_process_packet(u_char *args,
   /* Idle flows cleanup */
   if(live_capture) {
     if(ndpi_thread_info[thread_id].last_idle_scan_time + IDLE_SCAN_PERIOD < ndpi_thread_info[thread_id].workflow->last_time) {
-      /* scan for idle flows */
+      /* scan for idle flows  */
       ndpi_twalk(ndpi_thread_info[thread_id].workflow->ndpi_flows_root[ndpi_thread_info[thread_id].idle_scan_idx],
 		 node_idle_scan_walker, &thread_id);
 
@@ -3308,16 +3314,16 @@ int orginal_main(int argc, char **argv) {
 
     parseOptions(argc, argv);
 
-    if(!quiet_mode) {
-      printf("\n-----------------------------------------------------------\n"
-	     "* NOTE: This is demo app to show *some* nDPI features.\n"
-	     "* In this demo we have implemented only some basic features\n"
-	     "* just to show you what you can do with the library. Feel \n"
-	     "* free to extend it and send us the patches for inclusion\n"
-	     "------------------------------------------------------------\n\n");
+    // if(!quiet_mode) {
+    //   printf("\n-----------------------------------------------------------\n"
+	  //    "* NOTE: This is demo app to show *some* nDPI features.\n"
+	  //    "* In this demo we have implemented only some basic features\n"
+	  //    "* just to show you what you can do with the library. Feel \n"
+	  //    "* free to extend it and send us the patches for inclusion\n"
+	  //    "------------------------------------------------------------\n\n");
 
-      printf("Using nDPI (%s) [%d thread(s)]\n", ndpi_revision(), num_threads);
-    }
+    //   printf("Using nDPI (%s) [%d thread(s)]\n", ndpi_revision(), num_threads);
+    // }
 
     signal(SIGINT, sigproc);
 
