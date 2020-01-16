@@ -2936,7 +2936,7 @@ static void ndpi_process_packet(u_char *args,
 }
 
 /**
- * @brief Call pcap_loop() to process packets from a live capture or savefile 
+ * @brief Call pcap_loop() to process packets from a live capture or savefile  
  */
 static void runPcapLoop(u_int16_t thread_id) {
   if((!shutdown_app) && (ndpi_thread_info[thread_id].workflow->pcap_handle != NULL))
