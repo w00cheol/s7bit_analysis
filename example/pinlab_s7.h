@@ -315,7 +315,7 @@ void bit_analysis(uint8_t *s7packet,unsigned long packet_len,uint16_t id, uint16
             print_onebyte_flag(packet_checked[20],trgereig0);
             print_onebyte_flag(packet_checked[21],trgereig1);
             break;
-        case 0x01310006:
+        case 0x01310004:
             //flag
             break;
         case 0x01310005:
