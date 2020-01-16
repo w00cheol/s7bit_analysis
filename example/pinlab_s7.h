@@ -312,7 +312,6 @@ void bit_analysis(uint8_t *s7packet,unsigned long packet_len,uint16_t id, uint16
             print_onebyte_flag(packet_checked[14],funk0);
             print_onebyte_flag(packet_checked[15],funk1);
             print_onebyte_flag(packet_checked[16],funk2);
-            print_onebyte_flag(packet_checked[16],funk2);
             print_onebyte_flag(packet_checked[20],trgereig0);
             print_onebyte_flag(packet_checked[21],trgereig1);
             break;
