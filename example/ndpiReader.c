@@ -55,7 +55,25 @@
 #include "reader_util.h"
 #include "intrusion_detection.h"
 
+//PINLAB
+#include "pinlab_s7.h"
+static int pkcount=0;
 
+typedef struct Header_Length{
+  u_int16_t mac;
+  u_int16_t ip;
+  u_int16_t tcp;
+  u_int16_t total;//mac+ip+tcp
+}headlen;
+
+static headlen hl;
+
+void init_header_len(){
+  hl.mac=14;
+  hl.ip=0;
+  hl.tcp=0;
+  hl.total=0;
+}
 /** Client parameters **/
 
 static char *_pcap_file[MAX_NUM_READER_THREADS]; /**< Ingress pcap file/interfaces */
@@ -2455,109 +2473,109 @@ static void printResults(u_int64_t processing_time_usec, u_int64_t setup_time_us
   if(cumulative_stats.total_wire_bytes == 0)
     goto free_stats;
 
-  if(!quiet_mode) {
-    printf("\nnDPI Memory statistics:\n");
-    printf("\tnDPI Memory (once):      %-13s\n", formatBytes(ndpi_get_ndpi_detection_module_size(), buf, sizeof(buf)));
-    printf("\tFlow Memory (per flow):  %-13s\n", formatBytes(sizeof(struct ndpi_flow_struct), buf, sizeof(buf)));
-    printf("\tActual Memory:           %-13s\n", formatBytes(current_ndpi_memory, buf, sizeof(buf)));
-    printf("\tPeak Memory:             %-13s\n", formatBytes(max_ndpi_memory, buf, sizeof(buf)));
-    printf("\tSetup Time:              %lu msec\n", (unsigned long)(setup_time_usec/1000));
-    printf("\tPacket Processing Time:  %lu msec\n", (unsigned long)(processing_time_usec/1000));
+  // if(!quiet_mode) {
+  //   printf("\nnDPI Memory statistics:\n");
+  //   printf("\tnDPI Memory (once):      %-13s\n", formatBytes(ndpi_get_ndpi_detection_module_size(), buf, sizeof(buf)));
+  //   printf("\tFlow Memory (per flow):  %-13s\n", formatBytes(sizeof(struct ndpi_flow_struct), buf, sizeof(buf)));
+  //   printf("\tActual Memory:           %-13s\n", formatBytes(current_ndpi_memory, buf, sizeof(buf)));
+  //   printf("\tPeak Memory:             %-13s\n", formatBytes(max_ndpi_memory, buf, sizeof(buf)));
+  //   printf("\tSetup Time:              %lu msec\n", (unsigned long)(setup_time_usec/1000));
+  //   printf("\tPacket Processing Time:  %lu msec\n", (unsigned long)(processing_time_usec/1000));
 
-      printf("\nTraffic statistics:\n");
-      printf("\tEthernet bytes:        %-13llu (includes ethernet CRC/IFC/trailer)\n",
-	     (long long unsigned int)cumulative_stats.total_wire_bytes);
-      printf("\tDiscarded bytes:       %-13llu\n",
-	     (long long unsigned int)cumulative_stats.total_discarded_bytes);
-      printf("\tIP packets:            %-13llu of %llu packets total\n",
-	     (long long unsigned int)cumulative_stats.ip_packet_count,
-	     (long long unsigned int)cumulative_stats.raw_packet_count);
-      /* In order to prevent Floating point exception in case of no traffic*/
-      if(cumulative_stats.total_ip_bytes && cumulative_stats.raw_packet_count)
-	avg_pkt_size = (unsigned int)(cumulative_stats.total_ip_bytes/cumulative_stats.raw_packet_count);
-      printf("\tIP bytes:              %-13llu (avg pkt size %u bytes)\n",
-	     (long long unsigned int)cumulative_stats.total_ip_bytes,avg_pkt_size);
-      printf("\tUnique flows:          %-13u\n", cumulative_stats.ndpi_flow_count);
+  //     printf("\nTraffic statistics:\n");
+  //     printf("\tEthernet bytes:        %-13llu (includes ethernet CRC/IFC/trailer)\n",
+	//      (long long unsigned int)cumulative_stats.total_wire_bytes);
+  //     printf("\tDiscarded bytes:       %-13llu\n",
+	//      (long long unsigned int)cumulative_stats.total_discarded_bytes);
+  //     printf("\tIP packets:            %-13llu of %llu packets total\n",
+	//      (long long unsigned int)cumulative_stats.ip_packet_count,
+	//      (long long unsigned int)cumulative_stats.raw_packet_count);
+  //     /* In order to prevent Floating point exception in case of no traffic*/
+  //     if(cumulative_stats.total_ip_bytes && cumulative_stats.raw_packet_count)
+	// avg_pkt_size = (unsigned int)(cumulative_stats.total_ip_bytes/cumulative_stats.raw_packet_count);
+  //     printf("\tIP bytes:              %-13llu (avg pkt size %u bytes)\n",
+	//      (long long unsigned int)cumulative_stats.total_ip_bytes,avg_pkt_size);
+  //     printf("\tUnique flows:          %-13u\n", cumulative_stats.ndpi_flow_count);
 
-      printf("\tTCP Packets:           %-13lu\n", (unsigned long)cumulative_stats.tcp_count);
-      printf("\tUDP Packets:           %-13lu\n", (unsigned long)cumulative_stats.udp_count);
-      printf("\tVLAN Packets:          %-13lu\n", (unsigned long)cumulative_stats.vlan_count);
-      printf("\tMPLS Packets:          %-13lu\n", (unsigned long)cumulative_stats.mpls_count);
-      printf("\tPPPoE Packets:         %-13lu\n", (unsigned long)cumulative_stats.pppoe_count);
-      printf("\tFragmented Packets:    %-13lu\n", (unsigned long)cumulative_stats.fragmented_count);
-      printf("\tMax Packet size:       %-13u\n",   cumulative_stats.max_packet_len);
-      printf("\tPacket Len < 64:       %-13lu\n", (unsigned long)cumulative_stats.packet_len[0]);
-      printf("\tPacket Len 64-128:     %-13lu\n", (unsigned long)cumulative_stats.packet_len[1]);
-      printf("\tPacket Len 128-256:    %-13lu\n", (unsigned long)cumulative_stats.packet_len[2]);
-      printf("\tPacket Len 256-1024:   %-13lu\n", (unsigned long)cumulative_stats.packet_len[3]);
-      printf("\tPacket Len 1024-1500:  %-13lu\n", (unsigned long)cumulative_stats.packet_len[4]);
-      printf("\tPacket Len > 1500:     %-13lu\n", (unsigned long)cumulative_stats.packet_len[5]);
+  //     printf("\tTCP Packets:           %-13lu\n", (unsigned long)cumulative_stats.tcp_count);
+  //     printf("\tUDP Packets:           %-13lu\n", (unsigned long)cumulative_stats.udp_count);
+  //     printf("\tVLAN Packets:          %-13lu\n", (unsigned long)cumulative_stats.vlan_count);
+  //     printf("\tMPLS Packets:          %-13lu\n", (unsigned long)cumulative_stats.mpls_count);
+  //     printf("\tPPPoE Packets:         %-13lu\n", (unsigned long)cumulative_stats.pppoe_count);
+  //     printf("\tFragmented Packets:    %-13lu\n", (unsigned long)cumulative_stats.fragmented_count);
+  //     printf("\tMax Packet size:       %-13u\n",   cumulative_stats.max_packet_len);
+  //     printf("\tPacket Len < 64:       %-13lu\n", (unsigned long)cumulative_stats.packet_len[0]);
+  //     printf("\tPacket Len 64-128:     %-13lu\n", (unsigned long)cumulative_stats.packet_len[1]);
+  //     printf("\tPacket Len 128-256:    %-13lu\n", (unsigned long)cumulative_stats.packet_len[2]);
+  //     printf("\tPacket Len 256-1024:   %-13lu\n", (unsigned long)cumulative_stats.packet_len[3]);
+  //     printf("\tPacket Len 1024-1500:  %-13lu\n", (unsigned long)cumulative_stats.packet_len[4]);
+  //     printf("\tPacket Len > 1500:     %-13lu\n", (unsigned long)cumulative_stats.packet_len[5]);
 
-      if(processing_time_usec > 0) {
-	char buf[32], buf1[32], when[64];
-	float t = (float)(cumulative_stats.ip_packet_count*1000000)/(float)processing_time_usec;
-	float b = (float)(cumulative_stats.total_wire_bytes * 8 *1000000)/(float)processing_time_usec;
-	float traffic_duration;
+  //     if(processing_time_usec > 0) {
+	// char buf[32], buf1[32], when[64];
+	// float t = (float)(cumulative_stats.ip_packet_count*1000000)/(float)processing_time_usec;
+	// float b = (float)(cumulative_stats.total_wire_bytes * 8 *1000000)/(float)processing_time_usec;
+	// float traffic_duration;
 
-	if(live_capture) traffic_duration = processing_time_usec;
-	else traffic_duration = (pcap_end.tv_sec*1000000 + pcap_end.tv_usec) - (pcap_start.tv_sec*1000000 + pcap_start.tv_usec);
+	// if(live_capture) traffic_duration = processing_time_usec;
+	// else traffic_duration = (pcap_end.tv_sec*1000000 + pcap_end.tv_usec) - (pcap_start.tv_sec*1000000 + pcap_start.tv_usec);
 
-	printf("\tnDPI throughput:       %s pps / %s/sec\n", formatPackets(t, buf), formatTraffic(b, 1, buf1));
-	t = (float)(cumulative_stats.ip_packet_count*1000000)/(float)traffic_duration;
-	b = (float)(cumulative_stats.total_wire_bytes * 8 *1000000)/(float)traffic_duration;
+	// printf("\tnDPI throughput:       %s pps / %s/sec\n", formatPackets(t, buf), formatTraffic(b, 1, buf1));
+	// t = (float)(cumulative_stats.ip_packet_count*1000000)/(float)traffic_duration;
+	// b = (float)(cumulative_stats.total_wire_bytes * 8 *1000000)/(float)traffic_duration;
 
-	strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime(&pcap_start.tv_sec));
-	printf("\tAnalysis begin:        %s\n", when);
-	strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime(&pcap_end.tv_sec));
-	printf("\tAnalysis end:          %s\n", when);
-	printf("\tTraffic throughput:    %s pps / %s/sec\n", formatPackets(t, buf), formatTraffic(b, 1, buf1));
-	printf("\tTraffic duration:      %.3f sec\n", traffic_duration/1000000);
-      }
+	// strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime(&pcap_start.tv_sec));
+	// printf("\tAnalysis begin:        %s\n", when);
+	// strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime(&pcap_end.tv_sec));
+	// printf("\tAnalysis end:          %s\n", when);
+	// printf("\tTraffic throughput:    %s pps / %s/sec\n", formatPackets(t, buf), formatTraffic(b, 1, buf1));
+	// printf("\tTraffic duration:      %.3f sec\n", traffic_duration/1000000);
+  //     }
 
-      if(enable_protocol_guess)
-	printf("\tGuessed flow protos:   %-13u\n", cumulative_stats.guessed_flow_protocols);
-  }
+  //     if(enable_protocol_guess)
+	// printf("\tGuessed flow protos:   %-13u\n", cumulative_stats.guessed_flow_protocols);
+  // }
 
 
-  if(!quiet_mode) printf("\n\nDetected protocols:\n");
-  for(i = 0; i <= ndpi_get_num_supported_protocols(ndpi_thread_info[0].workflow->ndpi_struct); i++) {
-    ndpi_protocol_breed_t breed = ndpi_get_proto_breed(ndpi_thread_info[0].workflow->ndpi_struct, i);
+  // if(!quiet_mode) printf("\n\nDetected protocols:\n");
+  // for(i = 0; i <= ndpi_get_num_supported_protocols(ndpi_thread_info[0].workflow->ndpi_struct); i++) {
+  //   ndpi_protocol_breed_t breed = ndpi_get_proto_breed(ndpi_thread_info[0].workflow->ndpi_struct, i);
 
-    if(cumulative_stats.protocol_counter[i] > 0) {
-      breed_stats[breed] += (long long unsigned int)cumulative_stats.protocol_counter_bytes[i];
+  //   if(cumulative_stats.protocol_counter[i] > 0) {
+  //     breed_stats[breed] += (long long unsigned int)cumulative_stats.protocol_counter_bytes[i];
 
-      if(results_file)
-	fprintf(results_file, "%s\t%llu\t%llu\t%u\n",
-		ndpi_get_proto_name(ndpi_thread_info[0].workflow->ndpi_struct, i),
-		(long long unsigned int)cumulative_stats.protocol_counter[i],
-		(long long unsigned int)cumulative_stats.protocol_counter_bytes[i],
-		cumulative_stats.protocol_flows[i]);
+  //     if(results_file)
+	// fprintf(results_file, "%s\t%llu\t%llu\t%u\n",
+	// 	ndpi_get_proto_name(ndpi_thread_info[0].workflow->ndpi_struct, i),
+	// 	(long long unsigned int)cumulative_stats.protocol_counter[i],
+	// 	(long long unsigned int)cumulative_stats.protocol_counter_bytes[i],
+	// 	cumulative_stats.protocol_flows[i]);
 
-      if((!quiet_mode)) {
-	printf("\t%-20s packets: %-13llu bytes: %-13llu "
-	       "flows: %-13u\n",
-	       ndpi_get_proto_name(ndpi_thread_info[0].workflow->ndpi_struct, i),
-	       (long long unsigned int)cumulative_stats.protocol_counter[i],
-	       (long long unsigned int)cumulative_stats.protocol_counter_bytes[i],
-	       cumulative_stats.protocol_flows[i]);
-      }
+  //     if((!quiet_mode)) {
+	// printf("\t%-20s packets: %-13llu bytes: %-13llu "
+	//        "flows: %-13u\n",
+	//        ndpi_get_proto_name(ndpi_thread_info[0].workflow->ndpi_struct, i),
+	//        (long long unsigned int)cumulative_stats.protocol_counter[i],
+	//        (long long unsigned int)cumulative_stats.protocol_counter_bytes[i],
+	//        cumulative_stats.protocol_flows[i]);
+  //     }
 
-      total_flow_bytes += cumulative_stats.protocol_counter_bytes[i];
-    }
-  }
+  //     total_flow_bytes += cumulative_stats.protocol_counter_bytes[i];
+  //   }
+  // }
 
-  if((!quiet_mode)) {
-    printf("\n\nProtocol statistics:\n");
+  // if((!quiet_mode)) {
+  //   printf("\n\nProtocol statistics:\n");
 
-    for(i=0; i < NUM_BREEDS; i++) {
-      if(breed_stats[i] > 0) {
-	printf("\t%-20s %13llu bytes\n",
-	       ndpi_get_proto_breed_name(ndpi_thread_info[0].workflow->ndpi_struct, i),
-	       breed_stats[i]);
-      }
-    }
-  }
-
+  //   for(i=0; i < NUM_BREEDS; i++) {
+  //     if(breed_stats[i] > 0) {
+	// printf("\t%-20s %13llu bytes\n",
+	//        ndpi_get_proto_breed_name(ndpi_thread_info[0].workflow->ndpi_struct, i),
+	//        breed_stats[i]);
+  //     }
+  //   }
+  // }
+  
   // printf("\n\nTotal Flow Traffic: %llu (diff: %llu)\n", total_flow_bytes, cumulative_stats.total_ip_bytes-total_flow_bytes);
 
   printFlowsStats();
@@ -2763,6 +2781,56 @@ static void ndpi_process_packet(u_char *args,
   memcpy(packet_checked, packet, header->caplen);
   p = ndpi_workflow_process_packet(ndpi_thread_info[thread_id].workflow, header, packet_checked);
 
+
+  //PINLAB
+  pkcount++;
+
+  u_int8_t s7_offset=0;
+  u_int8_t s7data_offset=0;
+  u_int8_t s7param_offset=0;
+
+  u_int8_t tpkt_len=4;
+  u_int8_t iso_len=3;
+  u_int8_t s7header_len=10;
+  u_int8_t s7param_len=0;
+  unsigned long s7data_len=0;
+
+  u_int16_t s7id=0;
+  u_int16_t s7index=0;
+  
+  if((packet_checked[hl.mac]&0xF0)==0x40){
+    hl.ip=(packet_checked[hl.mac]&0x0F)*4; //IPv4
+  }else if((packet_checked[hl.mac]&0xF0)==0x60){
+    hl.ip=40;//IPv6
+  }
+
+  hl.tcp=((packet_checked[hl.mac + hl.ip + 12]&0xF0)>>4)*4;
+  hl.total=hl.mac + hl.ip + hl.tcp;
+
+  s7_offset=hl.total+tpkt_len+iso_len;
+  
+  if((packet_checked[s7_offset]==0x32)&&((header->caplen)>s7_offset)){
+    // printf("Detection s7 packet\n")
+    s7param_len=packet_checked[s7_offset+7];
+    s7data_offset=s7_offset+s7header_len+s7param_len;
+
+    if(packet_checked[s7_offset+s7header_len+4]==0x12){
+      printf("--- Detection s7 Response (packet num : %d) ---\n",pkcount);
+
+      s7id=(packet_checked[s7data_offset+4]<<8);
+      s7id+=packet_checked[s7data_offset+5];
+      s7index=(packet_checked[s7data_offset+6]<<8);
+      s7index=packet_checked[s7data_offset+7];
+
+      s7param_offset=s7_offset+s7header_len+s7param_len;
+
+      s7data_len=header->caplen-s7param_offset;
+//
+      printf("ID = %x, Index = %x\n\n",s7id,s7index);
+      bit_analysis(packet_checked+s7param_offset,s7data_len,s7id,s7index);
+    }
+  }
+
   if(!pcap_start.tv_sec) pcap_start.tv_sec = header->ts.tv_sec, pcap_start.tv_usec = header->ts.tv_usec;
   pcap_end.tv_sec = header->ts.tv_sec, pcap_end.tv_usec = header->ts.tv_usec;
 
@@ -2868,7 +2936,7 @@ static void ndpi_process_packet(u_char *args,
 }
 
 /**
- * @brief Call pcap_loop() to process packets from a live capture or savefile
+ * @brief Call pcap_loop() to process packets from a live capture or savefile 
  */
 static void runPcapLoop(u_int16_t thread_id) {
   if((!shutdown_app) && (ndpi_thread_info[thread_id].workflow->pcap_handle != NULL))
@@ -3252,6 +3320,9 @@ int orginal_main(int argc, char **argv) {
     }
 
     signal(SIGINT, sigproc);
+
+    //PINLAB
+    init_header_len();
 
     for(i=0; i<num_loops; i++)
       test_lib();
