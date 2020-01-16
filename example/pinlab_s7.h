@@ -315,6 +315,9 @@ void bit_analysis(uint8_t *s7packet,unsigned long packet_len,uint16_t id, uint16
             print_onebyte_flag(packet_checked[20],trgereig0);
             print_onebyte_flag(packet_checked[21],trgereig1);
             break;
+        case 0x01310006:
+            //flag
+            break;
         case 0x01310005:
             printf("SZL data tree (list count no. %d)\n",1);
             for(seq=12;seq<packet_len;seq++){
